@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QListWidget, QLabel, QPushButton
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QListWidget, QLabel
 from PySide6.QtCore import Signal
 
 class Sidebar(QWidget):
@@ -30,24 +30,10 @@ class Sidebar(QWidget):
             }
         """)
         self.model_list.itemSelectionChanged.connect(self._on_model_selected)
-        layout.addWidget(self.model_list, 1)
-        
-        # Add image button
-        self.image_button = QPushButton("Add Image")
-        self.image_button.setStyleSheet("""
-            QPushButton {
-                margin: 15px;
-                background-color: #3a3a3a;
-            }
-            QPushButton:hover {
-                background-color: #4a4a4a;
-            }
-        """)
-        layout.addWidget(self.image_button)
+        layout.addWidget(self.model_list, 1)  # The 1 makes it expandable
     
-    # In sidebar.py
     def load_models(self, models):
-        self.models = models  # Store models
+        self.models = models
         self.model_list.clear()
         for model in models:
             self.model_list.addItem(model["name"])

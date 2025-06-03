@@ -35,8 +35,9 @@ class OpenAIClient:
                 )
                 
                 if response.status_code != 200:
-                    error_msg = f"API Error {response.status_code}: {response.text}"
-                    return error_msg
+                    error_data = response.json()
+                    error_msg = error_data.get('error', {}).get('message', response.text)
+                    return f"API Error {response.status_code}: {error_msg}"
                 
                 return self._parse_response(response.json())
                 
@@ -49,30 +50,42 @@ class OpenAIClient:
         except Exception as e:
             return f"Unexpected error: {str(e)}"
     
-    def _prepare_openai_payload(self, messages, max_tokens):
-        """Prepare payload for OpenAI-compatible API"""
+    def _prepare_openai_payload(self, messages, max_tokens=1500):
         api_messages = []
         for msg in messages:
             content = []
-            
-            if isinstance(msg['content'], dict):
-                if 'text' in msg['content'] and msg['content']['text']:
-                    content.append({"type": "text", "text": msg['content']['text']})
-                if 'image_base64' in msg['content'] and msg['content']['image_base64']:
-                    content.append({
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/png;base64,{msg['content']['image_base64']}"
-                        }
-                    })
-            else:
+        
+            # Handle text content
+            if isinstance(msg['content'], dict) and 'text' in msg['content']:
+                content.append({"type": "text", "text": msg['content']['text']})
+        
+            # Handle image content
+            if isinstance(msg['content'], dict) and 'image_base64' in msg['content']:
+                content.append({
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/png;base64,{msg['content']['image_base64']}"
+                    }
+                })
+        
+            # Handle audio content
+            if isinstance(msg['content'], dict) and 'audio_base64' in msg['content']:
+                content.append({
+                    "type": "audio",
+                    "audio": {
+                        "url": f"data:audio/wav;base64,{msg['content']['audio_base64']}"
+                    }
+                })
+        
+            # Handle simple text
+            if not isinstance(msg['content'], dict) and msg['content']:
                 content.append({"type": "text", "text": msg['content']})
-            
+        
             api_messages.append({
                 "role": msg['role'],
                 "content": content
             })
-        
+    
         return {
             "model": self.config["model_name"],
             "messages": api_messages,

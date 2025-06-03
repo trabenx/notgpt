@@ -1,4 +1,5 @@
 from PySide6.QtWidgets import QMainWindow, QHBoxLayout, QWidget, QSplitter
+from PySide6.QtCore import QTimer
 from .sidebar import Sidebar
 from .chat_area import ChatArea
 
@@ -33,3 +34,11 @@ class MainWindow(QMainWindow):
         
         # Connect signals
         self.sidebar.modelSelected.connect(self.chat_area.set_current_model)
+        #self.sidebar.addImageRequested.connect(self.chat_area.add_image)  # Connect to chat area
+
+
+    def showEvent(self, event):
+        """Focus on input field when window is shown"""
+        super().showEvent(event)
+        # Use a timer to ensure this happens after UI is fully rendered
+        QTimer.singleShot(100, self.chat_area.message_input.setFocus)

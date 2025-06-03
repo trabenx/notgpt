@@ -6,9 +6,13 @@ from PySide6.QtCore import Qt, QTimer
 from .message_bubble import MessageBubble
 from .api_client import OpenAIClient
 from .image_utils import image_to_base64
+from .audio_utils import record_audio, audio_to_base64
 import asyncio
 import base64
+import threading
+import sounddevice as sd
 from PySide6.QtGui import QPixmap
+
 
 class ChatArea(QWidget):
     def __init__(self):
@@ -56,14 +60,30 @@ class ChatArea(QWidget):
         self.image_button.setFixedSize(40, 40)
         self.image_button.clicked.connect(self.add_image)
         
+        # Add audio button to input area
+        self.audio_button = QPushButton("🎤")
+        self.audio_button.setToolTip("Record audio")
+        self.audio_button.setFixedSize(40, 40)
+        self.audio_button.clicked.connect(self.start_audio_recording)
+        
+        # Audio state
+        self.is_recording = False
+        self.audio_data = None
+        self.sample_rate = 44100  # Default sample rate
+        self.recording_timer = QTimer()
+        self.recording_timer.timeout.connect(self.update_recording_timer)
+        self.recording_time = 0
+        
         self.send_button = QPushButton("Send")
         self.send_button.setFixedWidth(80)
         
         input_layout.addWidget(self.image_button)
+        input_layout.addWidget(self.audio_button)  # Add to your input layout
         input_layout.addWidget(self.message_input, 1)
         input_layout.addWidget(self.send_button)
         
         layout.addWidget(input_widget)
+
         
         # Connect signals
         self.send_button.clicked.connect(self.send_message)
@@ -170,6 +190,95 @@ class ChatArea(QWidget):
             self.add_message_bubble(error_bubble, Qt.AlignLeft)
         
         self.scroll_to_bottom()
+
+    def start_audio_recording(self):
+        """Start audio recording in a separate thread"""
+        if self.is_recording:
+            self.stop_audio_recording()
+            return
+            
+        self.is_recording = True
+        self.recording_time = 0
+        self.audio_data = None  # Reset previous audio data
+        self.audio_button.setText("⏹️")
+        self.audio_button.setStyleSheet("background-color: #ff5555;")
+        
+        # Start timer for UI updates
+        self.recording_timer.start(1000)  # Update every second
+        
+        # Start recording in a separate thread
+        self.audio_thread = threading.Thread(target=self.record_audio_thread)
+        self.audio_thread.daemon = True  # Allow thread to exit with app
+        self.audio_thread.start()
+    
+    def record_audio_thread(self):
+        """Thread for audio recording"""
+        try:
+            # Record audio for up to 10 seconds
+            duration = 10
+            self.audio_data = sd.rec(int(duration * self.sample_rate),
+                                    samplerate=self.sample_rate,
+                                    channels=1,
+                                    dtype='float32')
+            sd.wait()  # Wait until recording is finished
+        except Exception as e:
+            print(f"Recording error: {str(e)}")
+    
+    def update_recording_timer(self):
+        """Update UI during recording"""
+        self.recording_time += 1
+        self.audio_button.setText(f"⏹️{self.recording_time}s")
+        
+        # Auto-stop after 10 seconds
+        if self.recording_time >= 10:
+            self.stop_audio_recording()
+
+        if self.is_recording:
+            if self.recording_time % 2 == 0:
+                self.audio_button.setStyleSheet("background-color: #ff5555;")
+            else:
+                self.audio_button.setStyleSheet("background-color: #ff0000;")
+
+    def stop_audio_recording(self):
+        """Stop recording and process audio"""
+        if not self.is_recording:
+            return
+            
+        self.is_recording = False
+        self.recording_timer.stop()
+        self.audio_button.setText("🎤")
+        self.audio_button.setStyleSheet("")
+        
+        # Wait for recording thread to finish
+        if self.audio_thread and self.audio_thread.is_alive():
+            self.audio_thread.join(timeout=1.0)  # Wait up to 1 second
+        
+        # Check if we have audio data
+        if self.audio_data is None or len(self.audio_data) == 0:
+            print("No audio data recorded")
+            return
+            
+        try:
+            # Convert to base64
+            base64_audio = audio_to_base64(self.audio_data, self.sample_rate)
+            
+            # Create message content
+            content = {"audio_base64": base64_audio}
+            
+            # Add user message (audio)
+            user_bubble = MessageBubble("user", content)
+            self.add_message_bubble(user_bubble, Qt.AlignRight)
+            
+            # Add to history
+            self.message_history.append({"role": "user", "content": content})
+            
+            # Send to API
+            asyncio.create_task(self.get_ai_response())
+        except Exception as e:
+            print(f"Audio processing error: {str(e)}")
+            error_bubble = MessageBubble("assistant", f"Audio error: {str(e)}")
+            self.add_message_bubble(error_bubble, Qt.AlignLeft)
+
     
     def scroll_to_bottom(self):
         # Scroll to bottom after UI updates
