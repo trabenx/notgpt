@@ -1,5 +1,5 @@
 import sys
-import asyncio  # Add this import
+import asyncio
 import qasync
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import QFile, QTextStream
@@ -21,13 +21,16 @@ def main():
     
     # Create main window
     window = MainWindow()
+    
+    # Load models into sidebar
     window.sidebar.load_models(models)
     
     # Set initial model if available
     if models:
+        # Select first model
         window.sidebar.model_list.setCurrentRow(0)
-        # Emit initial model selection
-        window.sidebar.modelSelected.emit(models[0])
+        # Manually trigger the model selection
+        window.sidebar._on_model_selected()
     
     window.show()
     

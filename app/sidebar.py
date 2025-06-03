@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QListWidget, QLabel
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Signal, QTimer
 
 class Sidebar(QWidget):
     modelSelected = Signal(dict)
@@ -39,8 +39,11 @@ class Sidebar(QWidget):
             self.model_list.addItem(model["name"])
         if self.model_list.count() > 0:
             self.model_list.setCurrentRow(0)
+            # Trigger selection after items are added
+            QTimer.singleShot(100, self._on_model_selected)
 
     def _on_model_selected(self):
+        """This is now a public method since we need to call it externally"""
         selected_index = self.model_list.currentRow()
         if 0 <= selected_index < len(self.models):
             self.modelSelected.emit(self.models[selected_index])

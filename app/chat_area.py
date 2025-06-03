@@ -94,12 +94,41 @@ class ChatArea(QWidget):
         self.message_history = []
         self.current_image = None
         self.client = None
+        
+        # Add modality support state
+        self.supports_image = False
+        self.supports_audio = False
+
     
     def set_current_model(self, model_config):
         self.current_model = model_config
         self.client = OpenAIClient(model_config)
+        # Update modality support
+        modalities = model_config.get('modalities', [])
+        self.supports_image = 'image' in modalities
+        self.supports_audio = 'audio' in modalities
+        
+        # Update button states
+        self.update_button_states()
         self.clear_chat()
     
+    def update_button_states(self):
+        """Update button states based on model capabilities"""
+        self.image_button.setEnabled(self.supports_image)
+        self.audio_button.setEnabled(self.supports_audio)
+        
+        # Add tooltips to explain why buttons are disabled
+        if not self.supports_image:
+            self.image_button.setToolTip("Current model doesn't support images")
+        else:
+            self.image_button.setToolTip("Add image")
+            
+        if not self.supports_audio:
+            self.audio_button.setToolTip("Current model doesn't support audio")
+        else:
+            self.audio_button.setToolTip("Record audio")
+
+
     def clear_chat(self):
         # Clear chat history
         while self.messages_layout.count() > 1:  # Keep spacer
@@ -152,8 +181,32 @@ class ChatArea(QWidget):
         # Insert before spacer
         self.messages_layout.insertWidget(self.messages_layout.count() - 1, bubble, alignment=alignment)
         self.scroll_to_bottom()
-    
+        
     async def get_ai_response(self):
+        # Create thinking bubble
+        thinking_bubble = MessageBubble("assistant", "Thinking...")
+        self.add_message_bubble(thinking_bubble, Qt.AlignLeft)
+    
+        try:
+            # For streaming responses
+            full_response = ""
+            async for chunk in self.client.stream_response(self.message_history):
+                full_response += chunk
+                # Update existing bubble
+                thinking_bubble.update_content(full_response)
+                self.scroll_to_bottom()
+            
+            # Final update
+            self.message_history.append({"role": "assistant", "content": full_response})
+            thinking_bubble.update_content(full_response)
+        
+        except Exception as e:
+            # Handle errors
+            error_bubble = MessageBubble("assistant", f"Error: {str(e)}")
+            self.add_message_bubble(error_bubble, Qt.AlignLeft)
+
+    
+    async def get_ai_response1(self):
         # Add thinking message
         thinking_bubble = MessageBubble("assistant", "Thinking...")
         self.add_message_bubble(thinking_bubble, Qt.AlignLeft)
