@@ -65,6 +65,13 @@ QPushButton:hover {
     background-color: #66BB6A;
 }
 
+QPushButton:disabled {
+    background-color: #3a3a3a !important;
+    color: #7a7a7a !important;
+    border: 1px solid #2a2a2a !important;
+}
+
+
 QScrollBar:vertical {
     border: none;
     background: #252526;
@@ -139,4 +146,54 @@ MessageBubble QLabel {
 /* Add spacing between messages */
 #messagesContainer > MessageBubble {
     margin-bottom: 10px;
+}
+
+/* Image button specific */
+#imageButton:disabled {
+    background-color: #3a3a3a;
+    color: #7a7a7a;
+}
+
+/* Audio button specific */
+#audioButton:disabled {
+    background-color: #3a3a3a;
+    color: #7a7a7a;
+}
+
+QToolTip {
+    background-color: #2d2d2d;
+    color: #d4d4d4;
+    border: 1px solid #3c3c3c;
+    padding: 5px;
+    border-radius: 5px;
+}
+
+/* Image button */
+#imageButton {
+    background-color: #3a3a3a;
+    border-radius: 50%;
+    font-size: 18px;
+}
+
+#imageButton:hover:enabled {
+    background-color: #4a4a4a;
+}
+
+#imageButton:pressed:enabled {
+    background-color: #5a5a5a;
+}
+
+/* Audio button */
+#audioButton {
+    background-color: #3a3a3a;
+    border-radius: 50%;
+    font-size: 18px;
+}
+
+#audioButton:hover:enabled {
+    background-color: #4a4a4a;
+}
+
+#audioButton:pressed:enabled {
+    background-color: #5a5a5a;
 }

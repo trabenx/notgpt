@@ -56,12 +56,14 @@ class ChatArea(QWidget):
         self.message_input.setPlaceholderText("Message...")
         
         self.image_button = QPushButton("🖼️")
+        self.image_button.setObjectName("imageButton")  # Add this
         self.image_button.setToolTip("Add image")
         self.image_button.setFixedSize(40, 40)
         self.image_button.clicked.connect(self.add_image)
         
         # Add audio button to input area
         self.audio_button = QPushButton("🎤")
+        self.audio_button.setObjectName("audioButton")  # Add this
         self.audio_button.setToolTip("Record audio")
         self.audio_button.setFixedSize(40, 40)
         self.audio_button.clicked.connect(self.start_audio_recording)
@@ -117,7 +119,7 @@ class ChatArea(QWidget):
         self.image_button.setEnabled(self.supports_image)
         self.audio_button.setEnabled(self.supports_audio)
         
-        # Add tooltips to explain why buttons are disabled
+        # Update tooltips
         if not self.supports_image:
             self.image_button.setToolTip("Current model doesn't support images")
         else:
@@ -126,7 +128,7 @@ class ChatArea(QWidget):
         if not self.supports_audio:
             self.audio_button.setToolTip("Current model doesn't support audio")
         else:
-            self.audio_button.setToolTip("Record audio")
+            self.audio_button.setToolTip("Record audio (10 seconds)")
 
 
     def clear_chat(self):
@@ -282,15 +284,15 @@ class ChatArea(QWidget):
         self.recording_time += 1
         self.audio_button.setText(f"⏹️{self.recording_time}s")
         
+        # Add flashing indicator
+        if self.recording_time % 2 == 0:
+            self.audio_button.setStyleSheet("background-color: #ff5555;")
+        else:
+            self.audio_button.setStyleSheet("background-color: #ff0000;")
+            
         # Auto-stop after 10 seconds
         if self.recording_time >= 10:
             self.stop_audio_recording()
-
-        if self.is_recording:
-            if self.recording_time % 2 == 0:
-                self.audio_button.setStyleSheet("background-color: #ff5555;")
-            else:
-                self.audio_button.setStyleSheet("background-color: #ff0000;")
 
     def stop_audio_recording(self):
         """Stop recording and process audio"""

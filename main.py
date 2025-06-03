@@ -2,7 +2,7 @@ import sys
 import asyncio
 import qasync
 from PySide6.QtWidgets import QApplication
-from PySide6.QtCore import QFile, QTextStream
+from PySide6.QtCore import QFile, QTextStream, QTimer
 from app.main_window import MainWindow
 from app.config_loader import load_models_config
 
@@ -15,24 +15,24 @@ def main():
         stream = QTextStream(style_file)
         app.setStyleSheet(stream.readAll())
         style_file.close()
-    
+    app.setStyleSheet(app.styleSheet() + """
+        QToolTip {
+            opacity: 230;
+        }
+    """)
+
     # Load models
     models = load_models_config()
     
     # Create main window
     window = MainWindow()
-    
-    # Load models into sidebar
-    window.sidebar.load_models(models)
-    
-    # Set initial model if available
-    if models:
-        # Select first model
-        window.sidebar.model_list.setCurrentRow(0)
-        # Manually trigger the model selection
-        window.sidebar._on_model_selected()
-    
     window.show()
+    
+    # Load models and select first one
+    window.sidebar.load_models(models)
+    if models:
+        # Use timer to ensure UI is ready
+        QTimer.singleShot(100, window.sidebar.select_first_model)
     
     # Set up asyncio event loop
     loop = qasync.QEventLoop(app)

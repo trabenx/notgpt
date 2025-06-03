@@ -74,7 +74,7 @@ class MessageBubble(QFrame):
         """)
         self.layout.addWidget(image_label)
     
-    def add_audio_label(self, audio_base64=None):
+    def add_audio_label(self, audio_base64):
         """Add audio player to the bubble"""
         audio_label = QLabel("🔊 Audio Message")
         audio_label.setStyleSheet("""
@@ -84,7 +84,7 @@ class MessageBubble(QFrame):
             margin: 0;
         """)
         self.layout.addWidget(audio_label)
-    
+        
         # Add play button
         play_button = QPushButton("▶️ Play")
         play_button.setStyleSheet("""
@@ -95,44 +95,44 @@ class MessageBubble(QFrame):
                 padding: 5px;
                 font-size: 12px;
             }
+            QPushButton:hover {
+                background-color: #66BB6A;
+            }
         """)
         play_button.setFixedSize(80, 30)
-    
-        if audio_base64:
-            # Store audio data for playback
-            play_button.audio_data = base64.b64decode(audio_base64)
-            play_button.clicked.connect(self.play_audio)
-        else:
-            play_button.setEnabled(False)
-    
-        self.layout.addWidget(play_button)
         
-    def play_audio(self):
+        # Store audio data in the button
+        play_button.audio_base64 = audio_base64
+        
+        # Connect the click event
+        play_button.clicked.connect(lambda: self.play_audio(play_button.audio_base64))
+        
+        self.layout.addWidget(play_button)
+
+    def play_audio(self, audio_base64):
         """Play audio using system player"""
         try:
-            # Create temporary audio file
-            import tempfile
-            import os
-            import subprocess
-        
-            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_file:
-                temp_file.write(self.sender().audio_data)
-                temp_file.flush()
-                temp_path = temp_file.name
-        
-            # Play audio using system player
-            if os.name == 'nt':  # Windows
-                os.startfile(temp_path)
-            else:  # macOS/Linux
-                opener = "open" if sys.platform == "darwin" else "xdg-open"
-                subprocess.call([opener, temp_path])
+            # Decode the base64 audio data
+            audio_bytes = base64.b64decode(audio_base64)
             
-            # Schedule file deletion
+            # Create temporary audio file
+            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_file:
+                temp_file.write(audio_bytes)
+                temp_path = temp_file.name
+            
+            # Play audio using system player
+            if sys.platform == "win32":  # Windows
+                os.startfile(temp_path)
+            elif sys.platform == "darwin":  # macOS
+                subprocess.run(["afplay", temp_path])
+            else:  # Linux
+                subprocess.run(["aplay", temp_path])
+                
+            # Schedule file deletion after playback
             QTimer.singleShot(10000, lambda: os.unlink(temp_path))
             
         except Exception as e:
             print(f"Error playing audio: {str(e)}")
-
 
     
     def add_timestamp(self):
