@@ -18,13 +18,14 @@ class MessageBubble(QFrame):
         layout.setSpacing(4)
     
         # Add content based on type
+        color = 'white' if message_type == 'assistant' else '#FFF2DD'        
         if isinstance(content, dict):
             # Multimodal message (text + image)
             if content.get('text'):
-                text_label = QLabel(content['text'])
+                text_label = QLabel(content if not isinstance(content, dict) else content['text'])
                 text_label.setWordWrap(True)
                 text_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
-                text_label.setStyleSheet("background: transparent; color: inherit;")
+                text_label.setStyleSheet(f"background: transparent; color: {color};")
                 layout.addWidget(text_label)
             
             if content.get('image_base64'):
@@ -40,14 +41,14 @@ class MessageBubble(QFrame):
             text_label = QLabel(content)
             text_label.setWordWrap(True)
             text_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
-            text_label.setStyleSheet("background: transparent; color: inherit;")
+            text_label.setStyleSheet(f"background: transparent; color: {color};")
             layout.addWidget(text_label)
     
         # Add timestamp
         timestamp = QDateTime.currentDateTime().toString("hh:mm AP")
         time_label = QLabel(timestamp)
         time_label.setObjectName("timestamp")
-        time_label.setStyleSheet("background: transparent; color: inherit;")
+        time_label.setStyleSheet(f"background: transparent; color: {color};")
         time_label.setAlignment(Qt.AlignRight | Qt.AlignBottom)
         layout.addWidget(time_label)
 

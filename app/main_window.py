@@ -5,7 +5,7 @@ from .chat_area import ChatArea
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Multi-LLM Desktop")
+        self.setWindowTitle("Not GPT")
         self.resize(1200, 800)
         
         # Central widget

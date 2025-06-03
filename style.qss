@@ -102,6 +102,11 @@ MessageBubble[type="assistant"] {
     margin-left: 0;
     margin-right: 20%;
 }
+MessageBubble[type="assistant"] QLabel {
+    color: white !important;
+    background-color: transparent;
+}
+
 
 QLabel#timestamp {
     color: #858585;
@@ -131,22 +136,6 @@ QLabel#imagePreview {
 
 /* Add these rules to your existing style.qss */
 
-/* Ensure all elements inside message bubbles have transparent backgrounds */
-MessageBubble[type="user"] {
-    background-color: #0B57D0;
-    border-radius: 18px;
-    border-bottom-right-radius: 4px;
-    padding: 12px 16px;
-    color: white;
-}
-
-MessageBubble[type="assistant"] {
-    background-color: #333333;
-    border-radius: 18px;
-    border-bottom-left-radius: 4px;
-    padding: 12px 16px;
-    color: #d4d4d4;
-}
 
 /* Ensure all elements inside message bubbles have transparent backgrounds */
 MessageBubble QLabel {
@@ -154,20 +143,10 @@ MessageBubble QLabel {
     color: inherit;
 }
 
-/* Fix alignment for message bubbles */
-[type="user"] {
-    margin-left: 20%;
-    margin-right: 0;
-}
-
-[type="assistant"] {
-    margin-left: 0;
-    margin-right: 20%;
-}
-
 /* Timestamp styling */
 #timestamp {
-    color: rgba(255, 255, 255, 0.7); /* Slightly transparent */
+    color: rgba(255, 255, 255, 0.7) !important;
     font-size: 11px;
     padding-top: 4px;
+    background-color: transparent;
 }

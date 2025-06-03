@@ -22,13 +22,12 @@ class OpenAIClient:
             payload = self._prepare_custom_payload(messages, max_tokens)
         
         try:
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(verify=False) as client:
                 response = await client.post(
                     self.config["endpoint"],
                     headers=self.headers,
                     json=payload,
-                    timeout=60.0,
-                    verify=False  # Disable SSL verification for self-signed certs
+                    timeout=60.0
                 )
                 
                 if response.status_code != 200:
@@ -77,24 +76,19 @@ class OpenAIClient:
         }
     
     def _prepare_custom_payload(self, messages, max_tokens):
-        """Prepare payload for custom API format (like in your example)"""
-        # Extract just the text content
-        content = []
+        """Prepare langchain-style payload"""
+        # Extract all messages
+        message_list = []
         for msg in messages:
-            if isinstance(msg['content'], dict):
-                if 'text' in msg['content']:
-                    content.append(msg['content']['text'])
-                # Skip images for now in custom format
-            else:
-                content.append(msg['content'])
-        
-        # For simplicity, use only the last message
-        # You might want to adjust this based on your API requirements
-        last_message = content[-1] if content else ""
-        
+            role = "user" if msg['role'] == "user" else "assistant"
+            content = msg['content']
+            if isinstance(content, dict):
+                content = content.get('text', '')
+            message_list.append({"role": role, "content": content})
+    
         return {
             "model": self.config["model_name"],
-            "prompt": last_message,
+            "messages": message_list,
             "max_tokens": max_tokens
         }
     
