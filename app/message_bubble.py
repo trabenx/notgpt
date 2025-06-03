@@ -1,6 +1,7 @@
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QFrame, QSizePolicy, QPushButton
 from PySide6.QtGui import QPixmap
 from PySide6.QtCore import Qt, QDateTime, QSize
+import sys
 import base64
 import tempfile
 
