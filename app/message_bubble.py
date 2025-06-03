@@ -2,6 +2,7 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QFrame, QSizePolicy,
 from PySide6.QtGui import QPixmap
 from PySide6.QtCore import Qt, QDateTime, QSize
 import base64
+import tempfile
 
 class MessageBubble(QFrame):
     def __init__(self, message_type, content, parent=None):
