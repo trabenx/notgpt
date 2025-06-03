@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QFrame, QSizePolicy
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QFrame, QSizePolicy, QPushButton
 from PySide6.QtGui import QPixmap
 from PySide6.QtCore import Qt, QDateTime, QSize
 import base64
