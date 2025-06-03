@@ -208,43 +208,65 @@ class ChatArea(QWidget):
             self.add_message_bubble(error_bubble, Qt.AlignLeft)
 
     
-    async def get_ai_response1(self):
+    async def get_ai_response(self):
         # Add thinking message
         thinking_bubble = MessageBubble("assistant", "Thinking...")
         self.add_message_bubble(thinking_bubble, Qt.AlignLeft)
-        
+    
         try:
-            # Send request to API
-            response = await self.client.send_request(self.message_history)
-            
-            # Add response to history
-            self.message_history.append({"role": "assistant", "content": response})
-            
-            # Remove thinking bubble
-            for i in range(self.messages_layout.count()):
-                item = self.messages_layout.itemAt(i)
-                if item and item.widget() == thinking_bubble:
-                    self.messages_layout.removeWidget(thinking_bubble)
-                    thinking_bubble.deleteLater()
-                    break
-            
-            # Add actual response
-            response_bubble = MessageBubble("assistant", response)
-            self.add_message_bubble(response_bubble, Qt.AlignLeft)
+            full_response = ""
+            response_bubble = None
+        
+            # For streaming API
+            if hasattr(self.client, 'stream_response'):
+                async for chunk in self.client.stream_response(self.message_history):
+                    if not response_bubble:
+                        # Remove thinking bubble
+                        self.remove_message_bubble(thinking_bubble)
+                    
+                        # Create new bubble for actual response
+                        response_bubble = MessageBubble("assistant", chunk)
+                        self.add_message_bubble(response_bubble, Qt.AlignLeft)
+                    else:
+                        # Update existing bubble
+                        response_bubble.update_content(full_response + chunk)
+                
+                    full_response += chunk
+                    self.scroll_to_bottom()
+                
+                    # Small delay to allow UI updates
+                    await asyncio.sleep(0.01)
+            else:
+                # Non-streaming fallback
+                response = await self.client.send_request(self.message_history)
+                self.remove_message_bubble(thinking_bubble)
+                response_bubble = MessageBubble("assistant", response)
+                self.add_message_bubble(response_bubble, Qt.AlignLeft)
+                full_response = response
+        
+            # Add to history
+            self.message_history.append({"role": "assistant", "content": full_response})
+        
         except Exception as e:
             # Remove thinking bubble
-            for i in range(self.messages_layout.count()):
-                item = self.messages_layout.itemAt(i)
-                if item and item.widget() == thinking_bubble:
-                    self.messages_layout.removeWidget(thinking_bubble)
-                    thinking_bubble.deleteLater()
-                    break
-            
+            self.remove_message_bubble(thinking_bubble)
+        
             # Show error message
             error_bubble = MessageBubble("assistant", f"Error: {str(e)}")
             self.add_message_bubble(error_bubble, Qt.AlignLeft)
-        
+    
         self.scroll_to_bottom()
+
+    def remove_message_bubble(self, bubble):
+        """Remove a message bubble from the layout"""
+        for i in range(self.messages_layout.count()):
+            item = self.messages_layout.itemAt(i)
+            widget = item.widget()
+            if widget == bubble:
+                self.messages_layout.removeWidget(bubble)
+                bubble.deleteLater()
+                return
+
 
     def start_audio_recording(self):
         """Start audio recording in a separate thread"""

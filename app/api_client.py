@@ -13,9 +13,48 @@ class OpenAIClient:
         }
         # Determine API format (openai or custom)
         self.api_format = config.get("api_format", "openai")
+        self.supports_streaming = config.get("supports_streaming", False)
         
     async def mocked_send_request(*args, **kwargs):
         return "As an AI developed by Microsoft, I don't possess consciousness, thoughts, or feelings. My responses are generated based on patterns in the data I've been trained on. If you have any questions or need assitance with something specific, feel free to ask!"
+
+    async def stream_response(self, messages, max_tokens=1500):
+        """Stream response from API if supported"""
+        if not self.supports_streaming:
+            # Fallback to regular request
+            response = await self.send_request(messages, max_tokens)
+            yield response
+            return
+        """Stream response from API for real-time updates"""
+        payload = self._prepare_openai_payload(messages, max_tokens)
+        payload["stream"] = True  # Enable streaming
+        
+        async with httpx.AsyncClient() as client:
+            async with client.stream(
+                "POST",
+                self.config["endpoint"],
+                headers=self.headers,
+                json=payload,
+                timeout=30.0
+            ) as response:
+                if response.status_code != 200:
+                    error_msg = f"API Error {response.status_code}: {response.text}"
+                    yield error_msg
+                    return
+                    
+                async for chunk in response.aiter_lines():
+                    if chunk.startswith("data: "):
+                        data = chunk[6:]
+                        if data == "[DONE]":
+                            return
+                        try:
+                            data_json = json.loads(data)
+                            if "choices" in data_json and data_json["choices"]:
+                                delta = data_json["choices"][0].get("delta", {})
+                                if "content" in delta:
+                                    yield delta["content"]
+                        except json.JSONDecodeError:
+                            continue
 
 
     async def send_request(self, messages, max_tokens=1500):

@@ -156,9 +156,23 @@ class MessageBubble(QFrame):
     
     def update_content(self, new_content):
         """Update bubble content dynamically"""
+        # Clear existing content
+        while self.layout.count():
+            item = self.layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+        
+        # Create new content
         self.create_content(new_content)
+        
+        # Update styles
         self.update_stylesheet()
+        
+        # Force UI update
         self.adjustSize()
+        self.updateGeometry()
+
     
     def update_stylesheet(self):
         """Update styles based on message type"""
