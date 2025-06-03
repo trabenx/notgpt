@@ -133,6 +133,7 @@ MessageBubble QLabel {
     color: white;  /* Set text color to white for both user and assistant */
     padding: 0;
     margin: 0;
+    word-wrap: break-word;
 }
 
 /* Timestamp styling */
@@ -147,6 +148,11 @@ MessageBubble QLabel {
 #messagesContainer > MessageBubble {
     margin-bottom: 10px;
 }
+
+#messagesContainer {
+    width: 100%;
+}
+
 
 /* Image button specific */
 #imageButton:disabled {

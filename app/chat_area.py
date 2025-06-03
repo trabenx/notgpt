@@ -181,8 +181,12 @@ class ChatArea(QWidget):
     
     def add_message_bubble(self, bubble, alignment):
         # Insert before spacer
-        self.messages_layout.insertWidget(self.messages_layout.count() - 1, bubble, alignment=alignment)
+        self.messages_layout.insertWidget(self.messages_layout.count() - 1, bubble, stretch=0, alignment=alignment)
+        
+        # Force layout update
+        self.messages_container.updateGeometry()
         self.scroll_to_bottom()
+
         
     async def get_ai_response(self):
         # Create thinking bubble
@@ -364,3 +368,7 @@ class ChatArea(QWidget):
     def _scroll_to_bottom(self):
         scrollbar = self.scroll_area.verticalScrollBar()
         scrollbar.setValue(scrollbar.maximum())
+        
+        # Force resize to ensure all content is visible
+        self.messages_container.adjustSize()
+        self.messages_container.updateGeometry()

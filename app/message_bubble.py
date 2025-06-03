@@ -1,11 +1,7 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QFrame, QSizePolicy, QPushButton
-from PySide6.QtGui import QPixmap
-from PySide6.QtCore import Qt, QDateTime, QSize, QTimer
-import sys
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QFrame, QSizePolicy
+from PySide6.QtGui import QPixmap, QFontMetrics, QFont
+from PySide6.QtCore import Qt, QDateTime, QSize
 import base64
-import tempfile
-import os
-import subprocess
 
 class MessageBubble(QFrame):
     def __init__(self, message_type, content, parent=None):
@@ -14,7 +10,7 @@ class MessageBubble(QFrame):
         self.setProperty("type", message_type)
         
         # Set size policy to expand vertically
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
+        self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.MinimumExpanding)
         
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(12, 8, 12, 8)
@@ -55,14 +51,21 @@ class MessageBubble(QFrame):
         text_label = QLabel(text)
         text_label.setWordWrap(True)
         text_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        text_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        text_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.MinimumExpanding)
         text_label.setStyleSheet("""
             background: transparent; 
             color: white;
             padding: 0;
             margin: 0;
         """)
-        self.layout.addWidget(text_label)
+        self.layout.addWidget(text_label, 1)  # Add stretch factor
+        
+        # Set minimum height based on text content
+        fm = QFontMetrics(text_label.font())
+        text_width = min(fm.horizontalAdvance(text), 600)  # Max 600px wide
+        lines = (fm.horizontalAdvance(text) // text_width) + 1
+        min_height = fm.height() * lines
+        text_label.setMinimumHeight(min_height)
     
     def add_image_label(self, image_base64):
         """Add image to the bubble"""
@@ -112,32 +115,6 @@ class MessageBubble(QFrame):
         play_button.clicked.connect(lambda: self.play_audio(play_button.audio_base64))
         
         self.layout.addWidget(play_button)
-
-    def play_audio(self, audio_base64):
-        """Play audio using system player"""
-        try:
-            # Decode the base64 audio data
-            audio_bytes = base64.b64decode(audio_base64)
-            
-            # Create temporary audio file
-            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_file:
-                temp_file.write(audio_bytes)
-                temp_path = temp_file.name
-            
-            # Play audio using system player
-            if sys.platform == "win32":  # Windows
-                os.startfile(temp_path)
-            elif sys.platform == "darwin":  # macOS
-                subprocess.run(["afplay", temp_path])
-            else:  # Linux
-                subprocess.run(["aplay", temp_path])
-                
-            # Schedule file deletion after playback
-            QTimer.singleShot(10000, lambda: os.unlink(temp_path))
-            
-        except Exception as e:
-            print(f"Error playing audio: {str(e)}")
-
     
     def add_timestamp(self):
         """Add timestamp to the bubble"""
@@ -153,26 +130,6 @@ class MessageBubble(QFrame):
         """)
         time_label.setAlignment(Qt.AlignRight | Qt.AlignBottom)
         self.layout.addWidget(time_label)
-    
-    def update_content(self, new_content):
-        """Update bubble content dynamically"""
-        # Clear existing content
-        while self.layout.count():
-            item = self.layout.takeAt(0)
-            widget = item.widget()
-            if widget:
-                widget.deleteLater()
-        
-        # Create new content
-        self.create_content(new_content)
-        
-        # Update styles
-        self.update_stylesheet()
-        
-        # Force UI update
-        self.adjustSize()
-        self.updateGeometry()
-
     
     def update_stylesheet(self):
         """Update styles based on message type"""
@@ -205,3 +162,7 @@ class MessageBubble(QFrame):
         """Provide appropriate size hint for dynamic content"""
         return QSize(super().sizeHint().width(), 
                      self.layout.sizeHint().height() + 20)
+    
+    def minimumSizeHint(self):
+        """Minimum size hint to ensure content is visible"""
+        return QSize(100, 50)

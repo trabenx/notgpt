@@ -29,7 +29,7 @@ class OpenAIClient:
         payload = self._prepare_openai_payload(messages, max_tokens)
         payload["stream"] = True  # Enable streaming
         
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(verify=False) as client:
             async with client.stream(
                 "POST",
                 self.config["endpoint"],
