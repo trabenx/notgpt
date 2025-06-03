@@ -11,40 +11,15 @@ class OpenAIClient:
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.api_key}" if self.api_key else ""
         }
+        # Determine API format (openai or custom)
+        self.api_format = config.get("api_format", "openai")
 
     async def send_request(self, messages, max_tokens=1500):
-        # Prepare messages for API
-        api_messages = []
-        for msg in messages:
-            # Handle multimodal messages
-            content = []
-            
-            if isinstance(msg['content'], dict):
-                # Handle image + text
-                if 'text' in msg['content'] and msg['content']['text']:
-                    content.append({"type": "text", "text": msg['content']['text']})
-                
-                if 'image_base64' in msg['content'] and msg['content']['image_base64']:
-                    content.append({
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/png;base64,{msg['content']['image_base64']}"
-                        }
-                    })
-            else:
-                # Text-only
-                content.append({"type": "text", "text": msg['content']})
-            
-            api_messages.append({
-                "role": msg['role'],
-                "content": content
-            })
-        
-        payload = {
-            "model": self.config["model_name"],
-            "messages": api_messages,
-            "max_tokens": max_tokens
-        }
+        # Prepare payload based on API format
+        if self.api_format == "openai":
+            payload = self._prepare_openai_payload(messages, max_tokens)
+        else:
+            payload = self._prepare_custom_payload(messages, max_tokens)
         
         try:
             async with httpx.AsyncClient() as client:
@@ -52,22 +27,15 @@ class OpenAIClient:
                     self.config["endpoint"],
                     headers=self.headers,
                     json=payload,
-                    timeout=60.0
+                    timeout=60.0,
+                    verify=False  # Disable SSL verification for self-signed certs
                 )
                 
                 if response.status_code != 200:
                     error_msg = f"API Error {response.status_code}: {response.text}"
                     return error_msg
                 
-                data = response.json()
-                # Extract text from response
-                if data.get("choices") and len(data["choices"]) > 0:
-                    content = data["choices"][0]["message"]["content"]
-                    if isinstance(content, list):
-                        # Handle multimodal response
-                        return "\n".join([item.get("text", "") for item in content if item.get("text")])
-                    return content
-                return "No response from model"
+                return self._parse_response(response.json())
                 
         except httpx.RequestError as e:
             return f"Network error: {str(e)}"
@@ -77,3 +45,74 @@ class OpenAIClient:
             return "Unexpected API response format"
         except Exception as e:
             return f"Unexpected error: {str(e)}"
+    
+    def _prepare_openai_payload(self, messages, max_tokens):
+        """Prepare payload for OpenAI-compatible API"""
+        api_messages = []
+        for msg in messages:
+            content = []
+            
+            if isinstance(msg['content'], dict):
+                if 'text' in msg['content'] and msg['content']['text']:
+                    content.append({"type": "text", "text": msg['content']['text']})
+                if 'image_base64' in msg['content'] and msg['content']['image_base64']:
+                    content.append({
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/png;base64,{msg['content']['image_base64']}"
+                        }
+                    })
+            else:
+                content.append({"type": "text", "text": msg['content']})
+            
+            api_messages.append({
+                "role": msg['role'],
+                "content": content
+            })
+        
+        return {
+            "model": self.config["model_name"],
+            "messages": api_messages,
+            "max_tokens": max_tokens
+        }
+    
+    def _prepare_custom_payload(self, messages, max_tokens):
+        """Prepare payload for custom API format (like in your example)"""
+        # Extract just the text content
+        content = []
+        for msg in messages:
+            if isinstance(msg['content'], dict):
+                if 'text' in msg['content']:
+                    content.append(msg['content']['text'])
+                # Skip images for now in custom format
+            else:
+                content.append(msg['content'])
+        
+        # For simplicity, use only the last message
+        # You might want to adjust this based on your API requirements
+        last_message = content[-1] if content else ""
+        
+        return {
+            "model": self.config["model_name"],
+            "prompt": last_message,
+            "max_tokens": max_tokens
+        }
+    
+    def _parse_response(self, response_data):
+        """Parse response based on API format"""
+        if self.api_format == "openai":
+            if response_data.get("choices") and len(response_data["choices"]) > 0:
+                content = response_data["choices"][0]["message"]["content"]
+                if isinstance(content, list):
+                    return "\n".join([item.get("text", "") for item in content if item.get("text")])
+                return content
+            return "No response from model"
+        else:
+            # Custom format parsing
+            if "response" in response_data:
+                return response_data["response"]
+            elif "text" in response_data:
+                return response_data["text"]
+            elif "output" in response_data:
+                return response_data["output"]
+            return "No response from model"
