@@ -1,0 +1,5 @@
+PySide6
+httpx
+qasync
+requests
+asyncio

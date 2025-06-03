@@ -1,0 +1,29 @@
+[
+  {
+    "name": "Local Llama3",
+    "endpoint": "http://localhost:8000/v1/chat/completions",
+    "api_type": "openai",
+    "api_version": "v1",
+    "modalities": ["text"],
+    "model_name": "llama3-8b",
+    "api_key": ""
+  },
+  {
+    "name": "OpenAI GPT-4",
+    "endpoint": "https://api.openai.com/v1/chat/completions",
+    "api_type": "openai",
+    "api_version": "v1",
+    "modalities": ["text"],
+    "model_name": "gpt-4-turbo",
+    "api_key": "your-openai-key"
+  },
+  {
+    "name": "Vision Model",
+    "endpoint": "https://api.example.com/v1",
+    "api_type": "openai",
+    "api_version": "v1",
+    "modalities": ["text", "image"],
+    "model_name": "clip-vision",
+    "api_key": "your-key-here"
+  }
+]
