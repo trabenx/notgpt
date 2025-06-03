@@ -38,7 +38,7 @@ class MessageBubble(QFrame):
             if content.get('image_base64'):
                 self.add_image_label(content['image_base64'])
             if content.get('audio_base64'):
-                self.add_audio_label()
+                self.add_audio_label(content['audio_base64'])
         else:
             # Text-only message
             self.add_text_label(content)
