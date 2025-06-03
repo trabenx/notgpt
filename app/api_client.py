@@ -13,6 +13,10 @@ class OpenAIClient:
         }
         # Determine API format (openai or custom)
         self.api_format = config.get("api_format", "openai")
+        
+    async def mocked_send_request(*args, **kwargs):
+        return "As an AI developed by Microsoft, I don't possess consciousness, thoughts, or feelings. My responses are generated based on patterns in the data I've been trained on. If you have any questions or need assitance with something specific, feel free to ask!"
+
 
     async def send_request(self, messages, max_tokens=1500):
         # Prepare payload based on API format

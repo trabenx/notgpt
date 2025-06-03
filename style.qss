@@ -82,32 +82,6 @@ QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
     background: none;
 }
 
-/* Message bubble styling */
-MessageBubble[type="user"] {
-    background-color: #0B57D0;
-    border-radius: 18px;
-    border-bottom-right-radius: 4px;
-    padding: 12px 16px;
-    color: white;
-    margin-left: 20%;
-    margin-right: 0;
-}
-
-MessageBubble[type="assistant"] {
-    background-color: #333333;
-    border-radius: 18px;
-    border-bottom-left-radius: 4px;
-    padding: 12px 16px;
-    color: #d4d4d4;
-    margin-left: 0;
-    margin-right: 20%;
-}
-MessageBubble[type="assistant"] QLabel {
-    color: white !important;
-    background-color: transparent;
-}
-
-
 QLabel#timestamp {
     color: #858585;
     font-size: 11px;
@@ -122,31 +96,47 @@ QLabel#imagePreview {
     margin-top: 5px;
 }
 
-/* Align user messages to right */
-[type="user"] {
+/* Message bubble styling */
+MessageBubble[type="user"] {
+    background-color: #0B57D0;
+    border-radius: 18px;
+    border-bottom-right-radius: 4px;
+    padding: 12px 16px;
     margin-left: 20%;
     margin-right: 0;
 }
 
-/* Align assistant messages to left */
-[type="assistant"] {
+MessageBubble[type="assistant"] {
+    background-color: #333333;
+    border-radius: 18px;
+    border-bottom-left-radius: 4px;
+    padding: 12px 16px;
     margin-left: 0;
     margin-right: 20%;
 }
 
-/* Add these rules to your existing style.qss */
+/* Ensure the bubble expands to fit content */
+MessageBubble {
+    min-height: 40px;
+}
 
-
-/* Ensure all elements inside message bubbles have transparent backgrounds */
+/* Make sure the text label expands */
 MessageBubble QLabel {
     background-color: transparent;
-    color: inherit;
+    color: white;  /* Set text color to white for both user and assistant */
+    padding: 0;
+    margin: 0;
 }
 
 /* Timestamp styling */
 #timestamp {
     color: rgba(255, 255, 255, 0.7) !important;
-    font-size: 11px;
+    background: transparent;
     padding-top: 4px;
-    background-color: transparent;
+    margin-top: 4px;
+}
+
+/* Add spacing between messages */
+#messagesContainer > MessageBubble {
+    margin-bottom: 10px;
 }
