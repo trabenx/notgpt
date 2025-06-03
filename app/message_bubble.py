@@ -4,6 +4,8 @@ from PySide6.QtCore import Qt, QDateTime, QSize
 import sys
 import base64
 import tempfile
+import os
+import subprocess
 
 class MessageBubble(QFrame):
     def __init__(self, message_type, content, parent=None):
