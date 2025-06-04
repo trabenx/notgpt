@@ -181,65 +181,45 @@ class ChatArea(QWidget):
     
     def add_message_bubble(self, bubble, alignment):
         # Insert before spacer
-        self.messages_layout.insertWidget(self.messages_layout.count() - 1, bubble, stretch=0, alignment=alignment)
+        self.messages_layout.insertWidget(self.messages_layout.count() - 1, bubble, alignment=alignment)
+        
+        # Set the correct parent immediately
+        bubble.setParent(self.messages_container)
         
         # Force layout update
-        self.messages_container.updateGeometry()
+        bubble.adjustSize()
+        self.messages_container.adjustSize()
         self.scroll_to_bottom()
 
-        
-    async def get_ai_response(self):
-        # Create thinking bubble
-        thinking_bubble = MessageBubble("assistant", "Thinking...")
-        self.add_message_bubble(thinking_bubble, Qt.AlignLeft)
-    
-        try:
-            # For streaming responses
-            full_response = ""
-            async for chunk in self.client.stream_response(self.message_history):
-                full_response += chunk
-                # Update existing bubble
-                thinking_bubble.update_content(full_response)
-                self.scroll_to_bottom()
-            
-            # Final update
-            self.message_history.append({"role": "assistant", "content": full_response})
-            thinking_bubble.update_content(full_response)
-        
-        except Exception as e:
-            # Handle errors
-            error_bubble = MessageBubble("assistant", f"Error: {str(e)}")
-            self.add_message_bubble(error_bubble, Qt.AlignLeft)
 
-    
+        
     async def get_ai_response(self):
         # Add thinking message
         thinking_bubble = MessageBubble("assistant", "Thinking...")
         self.add_message_bubble(thinking_bubble, Qt.AlignLeft)
-    
+        
         try:
             full_response = ""
             response_bubble = None
-        
+            
             # For streaming API
             if hasattr(self.client, 'stream_response'):
                 async for chunk in self.client.stream_response(self.message_history):
                     if not response_bubble:
                         # Remove thinking bubble
                         self.remove_message_bubble(thinking_bubble)
-                    
+                        
                         # Create new bubble for actual response
                         response_bubble = MessageBubble("assistant", chunk)
                         self.add_message_bubble(response_bubble, Qt.AlignLeft)
                     else:
                         # Update existing bubble
-                        response_bubble.update_content(full_response + chunk)
-                
-                    full_response += chunk
+                        full_response += chunk
+                        response_bubble.update_content(full_response)
+                    
+                    # Add small delay to reduce flickering
+                    await asyncio.sleep(0.05)
                     self.scroll_to_bottom()
-                
-                    # Small delay to allow UI updates
-                    await asyncio.sleep(0.01)
             else:
                 # Non-streaming fallback
                 response = await self.client.send_request(self.message_history)
@@ -247,26 +227,31 @@ class ChatArea(QWidget):
                 response_bubble = MessageBubble("assistant", response)
                 self.add_message_bubble(response_bubble, Qt.AlignLeft)
                 full_response = response
-        
+            
             # Add to history
             self.message_history.append({"role": "assistant", "content": full_response})
-        
+            
         except Exception as e:
             # Remove thinking bubble
             self.remove_message_bubble(thinking_bubble)
-        
+            
+            # Create full error message
+            error_msg = f"Error: {str(e)}"
+            # Ensure we can see the full error
+            if len(error_msg) > 100:
+                error_msg = error_msg[:100] + "..."  # Truncate very long errors
+                
             # Show error message
-            error_bubble = MessageBubble("assistant", f"Error: {str(e)}")
+            error_bubble = MessageBubble("assistant", error_msg)
             self.add_message_bubble(error_bubble, Qt.AlignLeft)
-    
+            
         self.scroll_to_bottom()
 
     def remove_message_bubble(self, bubble):
         """Remove a message bubble from the layout"""
         for i in range(self.messages_layout.count()):
             item = self.messages_layout.itemAt(i)
-            widget = item.widget()
-            if widget == bubble:
+            if item.widget() == bubble:
                 self.messages_layout.removeWidget(bubble)
                 bubble.deleteLater()
                 return

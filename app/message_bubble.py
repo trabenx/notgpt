@@ -10,7 +10,7 @@ class MessageBubble(QFrame):
         self.setProperty("type", message_type)
         
         # Set size policy to expand vertically
-        self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.MinimumExpanding)
+        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(12, 8, 12, 8)
@@ -21,6 +21,9 @@ class MessageBubble(QFrame):
         
         # Set bubble color based on type
         self.update_stylesheet()
+        
+        # Let Qt determine the natural size
+        self.adjustSize()
     
     def create_content(self, content):
         """Create content widgets based on message type"""
@@ -51,21 +54,25 @@ class MessageBubble(QFrame):
         text_label = QLabel(text)
         text_label.setWordWrap(True)
         text_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        text_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.MinimumExpanding)
+        text_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         text_label.setStyleSheet("""
             background: transparent; 
             color: white;
             padding: 0;
             margin: 0;
         """)
-        self.layout.addWidget(text_label, 1)  # Add stretch factor
+        self.layout.addWidget(text_label)
         
-        # Set minimum height based on text content
-        fm = QFontMetrics(text_label.font())
-        text_width = min(fm.horizontalAdvance(text), 600)  # Max 600px wide
-        lines = (fm.horizontalAdvance(text) // text_width) + 1
-        min_height = fm.height() * lines
-        text_label.setMinimumHeight(min_height)
+        # Calculate appropriate width based on parent
+        parent_width = self.parent().width() if self.parent() else 600
+        max_width = min(parent_width * 0.8, 600)  # Don't exceed 80% of parent width
+        
+        # Set maximum width to enable proper wrapping
+        text_label.setMaximumWidth(int(max_width))
+        
+        # Let Qt calculate the natural size
+        text_label.adjustSize()
+
     
     def add_image_label(self, image_base64):
         """Add image to the bubble"""
@@ -130,6 +137,34 @@ class MessageBubble(QFrame):
         """)
         time_label.setAlignment(Qt.AlignRight | Qt.AlignBottom)
         self.layout.addWidget(time_label)
+    
+    def update_content(self, new_content):
+        """Update bubble content without recreating the entire bubble"""
+        # Find the text label
+        for i in range(self.layout.count()):
+            item = self.layout.itemAt(i)
+            widget = item.widget()
+            if isinstance(widget, QLabel) and widget.objectName() != "timestamp":
+                # Update text content
+                if isinstance(new_content, dict):
+                    widget.setText(new_content.get('text', ''))
+                else:
+                    widget.setText(new_content)
+                
+                # Update size
+                fm = QFontMetrics(widget.font())
+                text_width = min(fm.horizontalAdvance(widget.text()), 400)
+                lines = (len(widget.text()) * fm.averageCharWidth()) // text_width + 1
+                min_height = fm.height() * lines + 10
+                widget.setMinimumHeight(min_height)
+                
+                # Only update one label (the main content)
+                break
+        
+        # Force UI update
+        self.adjustSize()
+        self.updateGeometry()
+
     
     def update_stylesheet(self):
         """Update styles based on message type"""

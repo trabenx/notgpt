@@ -18,18 +18,13 @@ class OpenAIClient:
     async def mocked_send_request(*args, **kwargs):
         return "As an AI developed by Microsoft, I don't possess consciousness, thoughts, or feelings. My responses are generated based on patterns in the data I've been trained on. If you have any questions or need assitance with something specific, feel free to ask!"
 
-    async def stream_response(self, messages, max_tokens=1500):
-        """Stream response from API if supported"""
-        if not self.supports_streaming:
-            # Fallback to regular request
-            response = await self.send_request(messages, max_tokens)
-            yield response
-            return
-        """Stream response from API for real-time updates"""
-        payload = self._prepare_openai_payload(messages, max_tokens)
-        payload["stream"] = True  # Enable streaming
-        
-        async with httpx.AsyncClient(verify=False) as client:
+async def stream_response(self, messages, max_tokens=1500):
+    """Stream response from API for real-time updates"""
+    payload = self._prepare_openai_payload(messages, max_tokens)
+    payload["stream"] = True
+    
+    try:
+        async with httpx.AsyncClient() as client:
             async with client.stream(
                 "POST",
                 self.config["endpoint"],
@@ -46,7 +41,7 @@ class OpenAIClient:
                     if chunk.startswith("data: "):
                         data = chunk[6:]
                         if data == "[DONE]":
-                            return
+                            break
                         try:
                             data_json = json.loads(data)
                             if "choices" in data_json and data_json["choices"]:
@@ -55,7 +50,11 @@ class OpenAIClient:
                                     yield delta["content"]
                         except json.JSONDecodeError:
                             continue
-
+    except (httpx.RemoteProtocolError, httpx.LocalProtocolError, asyncio.CancelledError):
+        # Gracefully handle connection closures
+        return
+    except Exception as e:
+        yield f"Streaming error: {str(e)}"
 
     async def send_request(self, messages, max_tokens=1500):
         # Prepare payload based on API format
@@ -87,7 +86,7 @@ class OpenAIClient:
         except KeyError:
             return "Unexpected API response format"
         except Exception as e:
-            return f"Unexpected error: {str(e)}"
+            return f"API request failed: {str(e)}"
     
     def _prepare_openai_payload(self, messages, max_tokens=1500):
         api_messages = []

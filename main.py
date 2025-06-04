@@ -5,6 +5,8 @@ from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import QFile, QTextStream, QTimer
 from app.main_window import MainWindow
 from app.config_loader import load_models_config
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
 def main():
     app = QApplication(sys.argv)
@@ -24,6 +26,8 @@ def main():
     # Load models
     models = load_models_config()
     
+    logging.info("Application starting")
+
     # Create main window
     window = MainWindow()
     window.show()
